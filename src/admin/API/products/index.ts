@@ -13,9 +13,9 @@ initializeApp({
 })
 
 const dataConverter: FirestoreDataConverter<Product> = {
-  toFirestore: ({ name, description, sku, thumbnail, price, stock }) => ({ name, description, sku, thumbnail, price, stock }),
+  toFirestore: ({ name, description, sku, thumbnail, price, stock, minStock, isPackage, piecesPerPackage, realStock }) => ({ name, description, sku, thumbnail, price, stock, minStock, isPackage, piecesPerPackage, realStock }),
   fromFirestore: (snapshot, options) => {
-    const { name, description, sku, thumbnail, price, stock } = snapshot.data(options);
+    const { name, description, sku, thumbnail, price, stock, minStock, isPackage, piecesPerPackage, realStock } = snapshot.data(options);
     return {
       id: snapshot.id,
       name,
@@ -23,7 +23,11 @@ const dataConverter: FirestoreDataConverter<Product> = {
       sku,
       thumbnail,
       price,
-      stock
+      stock,
+      minStock,
+      isPackage,
+      piecesPerPackage,
+      realStock
     }
   }
 }
@@ -31,7 +35,7 @@ const db = getFirestore()
 const productsCollection = collection(db, 'products').withConverter(dataConverter)
 const storage = getStorage()
 const products: ProductsAPI = {
-  create: (product) => new Promise(async resolve => {
+  create: async (product) => {
     const thumbnail = product.thumbnail
     product.thumbnail = ''
     const docRef = await addDoc(productsCollection, product)
@@ -43,25 +47,20 @@ const products: ProductsAPI = {
       product.thumbnail = newURL
       await products.update(product)
     }
-    resolve()
-  }),
-  read: () => new Promise(async resolve => {
+  },
+  read: async () => {
     const snapshots = await getDocs(productsCollection)
     const res: Product[] = []
     snapshots.forEach(dc => res.push(dc.data()))
-    resolve(res)
-  }),
-  update: ({ id, name, description, sku, thumbnail, price }) => new Promise(async resolve => {
-    await updateDoc(doc(productsCollection, id), { name, description, sku, thumbnail, price })
-    resolve()
-  }),
-  delete: (product) => new Promise(async resolve => {
+    return res
+  },
+  update: ({ id, name, description, sku, thumbnail, price, stock, minStock, isPackage, piecesPerPackage, realStock }) => updateDoc(doc(productsCollection, id), { name, description, sku, thumbnail, price, stock, minStock, isPackage, piecesPerPackage, realStock }),
+  delete: async (product) => {
     if (product.thumbnail !== '') {
       await deleteObject(ref(storage, product.id))
     }
     await deleteDoc(doc(productsCollection, product.id))
-    resolve()
-  }),
+  },
   selectImage: (calllback) => {
     const input = document.createElement('input')
     input.type = 'file'
@@ -75,7 +74,7 @@ const products: ProductsAPI = {
     }
     input.click()
   },
-  updateThumbnail: (product, newThumbnail) => new Promise(async resolve => {
+  updateThumbnail: async (product, newThumbnail) => {
     const thumbnailRef = ref(storage, product.id)
     if (product.thumbnail !== '') {
       await deleteObject(thumbnailRef)
@@ -84,7 +83,7 @@ const products: ProductsAPI = {
     const newURL = await getDownloadURL(thumbnailRef)
     product.thumbnail = newURL
     await products.update(product)
-    resolve(newURL)
-  })
+    return newURL
+  }
 }
 export default products

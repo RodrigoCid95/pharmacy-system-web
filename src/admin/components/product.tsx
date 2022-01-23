@@ -5,10 +5,11 @@ import { Stack } from '@fluentui/react/lib/Stack'
 import Loading from './loading'
 import { MessageBar, MessageBarType } from '@fluentui/react/lib/MessageBar'
 import { DefaultButton } from '@fluentui/react/lib/Button'
-import { TextField } from '@fluentui/react/lib/TextField'
+import { ITextField, TextField } from '@fluentui/react/lib/TextField'
 import { mergeStyles } from '@fluentui/react/lib/Styling'
-import { SpinButton } from '@fluentui/react/lib/SpinButton'
+import { ISpinButton, SpinButton } from '@fluentui/react/lib/SpinButton'
 import { Image, ImageFit } from '@fluentui/react/lib/Image'
+import { Toggle } from '@fluentui/react/lib/Toggle'
 
 const notFountImage = new URL('./../descarga.jpg', import.meta.url).href
 
@@ -20,73 +21,37 @@ interface ProductComponentProps {
 }
 interface ProductComponentState {
   loading: boolean
-  error: string
-  product: Product
 }
 export class ProductComponent extends React.Component<ProductComponentProps, ProductComponentState> {
   constructor(props: ProductComponentProps) {
     super(props)
     this.state = {
-      loading: false,
-      error: '',
-      product: props.product || {
-        name: '',
-        description: '',
-        sku: '',
-        thumbnail: '',
-        price: 0,
-        stock: 0,
-      }
+      loading: false
     }
   }
-  private async _handlerOnSave() {
-    const { id, name, sku } = this.state.product
-    this.setState({ error: '' })
-    if (name === '') {
-      this.setState({ error: 'Falta un nombre!' })
-      return
-    }
-    if (sku === '') {
-      this.setState({ error: 'Falta código SKU' })
-      return
-    }
-    this.setState({ loading: true })
-    if (id) {
-      products.update(this.state.product).then(() => {
-        this.setState({ loading: false })
-        this.props.onDismiss()
-      }).catch(error => {
-        console.error(error)
-        this.setState({ loading: false, error: error.message })
-      })
-    } else {
-      products.create(this.state.product).then(() => {
-        this.setState({ loading: false })
-        this.props.onDismiss()
-      }).catch(error => {
-        console.error(error)
-        this.setState({ error: error.message })
-      })
-    }
-  }
-  private _handlerOnChangeThumbnail() {
-    products.selectImage(image => {
-      if (this.state.product.id) {
-        this.setState({ loading: true })
-        products.updateThumbnail(this.state.product, image).then(thumbnail => {
-          this.setState({ loading: false, product: { ...this.state.product, thumbnail } })
+    private _handlerOnSave(product: Product) {
+      if (product.id !== '') {
+        products.update(product).then(() => {
+          this.setState({ loading: false })
+          this.props.onDismiss()
+        }).catch(error => {
+          console.error(error)
         })
       } else {
-        this.setState({ product: { ...this.state.product, thumbnail: image } })
+        products.create(product).then(() => {
+          this.setState({ loading: false })
+          this.props.onDismiss()
+        }).catch(error => {
+          console.error(error)
+        })
       }
-    })
-  }
+    }
   render() {
-    const { onDismiss } = this.props
-    const { loading, error, product } = this.state
+    const { onDismiss, product } = this.props
+    const { loading } = this.state
     return (
       <Alert
-        title={`${product.id ? 'Editar' : 'Nuevo'} producto`}
+        title={`${product ? 'Editar' : 'Nuevo'} producto`}
         onDismiss={onDismiss}
       >
         {loading && (
@@ -95,38 +60,126 @@ export class ProductComponent extends React.Component<ProductComponentProps, Pro
           </Stack>
         )}
         {!loading && (
-          <React.Fragment>
-            <Stack className={mergeStyles({ marginBottom: '1rem' })}>
-              {error !== '' && (
-                <MessageBar
-                  messageBarType={MessageBarType.error}
-                  onDismiss={() => this.setState({ error: '' })}
-                  dismissButtonAriaLabel="Cerrar"
-                >
-                  {error}
-                </MessageBar>
-              )}
-              <Image onClick={this._handlerOnChangeThumbnail.bind(this)} src={product.thumbnail || notFountImage} imageFit={ImageFit.cover} />
-              <TextField defaultValue={product.name} required label="Nombre" onChange={(e: any) => this.setState({ product: { ...product, name: e.target.value } })} />
-              <TextField defaultValue={product.description} label="Descripción" onChange={(e: any) => this.setState({ product: { ...product, description: e.target.value } })} multiline rows={3} />
-              <TextField defaultValue={product.sku} required label="SKU" onChange={(e: any) => this.setState({ product: { ...product, sku: e.target.value } })} />
-              <SpinButton defaultValue={product.price.toString()} incrementButtonAriaLabel="+" decrementButtonAriaLabel="-" min={0} step={0.1} label="Precio" onChange={(e: any) => this.setState({ product: { ...product, price: parseInt(e.target.value) } })} className={mergeStyles({ marginTop: '1rem!important' })} />
-              <SpinButton defaultValue={product.stock.toString()} incrementButtonAriaLabel="+" decrementButtonAriaLabel="-" min={0} step={0.1} label="Stock" onChange={(e: any) => this.setState({ product: { ...product, stock: parseInt(e.target.value) } })} className={mergeStyles({ marginTop: '1rem!important' })} />
-            </Stack>
-            <Stack horizontal horizontalAlign="space-around">
-              <DefaultButton
-                primary
-                text="Guardar"
-                onClick={this._handlerOnSave.bind(this)}
-              />
-              <DefaultButton
-                text="Cancelar"
-                onClick={onDismiss}
-              />
-            </Stack>
-          </React.Fragment>
+          <Form
+            product={product}
+            setLoading={loading => this.setState({ loading })}
+            onReturnValue={this._handlerOnSave.bind(this)}
+            onCancel={onDismiss}
+          />
         )}
       </Alert>
     )
   }
+}
+interface FormProps {
+  product?: Product
+  setLoading: (loading: boolean) => void
+  onReturnValue: (product: Product) => void
+  onCancel: () => void
+}
+const Form: React.FC<FormProps> = ({ product, setLoading, onReturnValue, onCancel }) => {
+  const [error, setError] = React.useState<string>('')
+  const [thumbnail, setThumbnail] = React.useState<string>(product?.thumbnail || '')
+
+  const nameRef = React.useRef<ITextField>(null)
+  const descriptionRef = React.useRef<ITextField>(null)
+  const skuRef = React.useRef<ITextField>(null)
+  const priceRef = React.useRef<ISpinButton>(null)
+  const stockRef = React.useRef<ISpinButton>(null)
+  const minStockRef = React.useRef<ISpinButton>(null)
+  const [isPackage, setIsPackage] = React.useState<boolean>(product?.isPackage || false)
+  const piecesPerPackageRef = React.useRef<ISpinButton>(null)
+
+  const _handlerOnChangeThumbnail = React.useCallback(() => {
+    products.selectImage(image => {
+      if (product) {
+        setLoading(true)
+        products.updateThumbnail(product, image).then(thumb => {
+          setThumbnail(thumb)
+          setLoading(false)
+        })
+      } else {
+        setThumbnail(image)
+      }
+    })
+  }, [product, setLoading])
+
+  const _handlerReturnValue = React.useCallback(() => {
+    setError('')
+    const name = nameRef.current?.value || ''
+    if (name === '') {
+      setError('Falta un nombre!')
+      return
+    }
+    const sku = skuRef.current?.value || ''
+    if (sku === '') {
+      setError('Falta código SKU')
+      return
+    }
+    const price = parseFloat(priceRef.current?.value || '0')
+    if (price === 0) {
+      setError('Falta el precio')
+      return
+    }
+    const piecesPerPackage = parseInt(piecesPerPackageRef.current?.value || '0')
+    if (isPackage && piecesPerPackage === 0) {
+      setError('Falta definir cuantas piezas contiene cada paquete')
+      return
+    }
+    const description = descriptionRef.current?.value || ''
+    const stock = parseInt(stockRef.current?.value || '0')
+    const minStock = parseInt(minStockRef.current?.value || '0')
+    const newProduct: Product = {
+      id: product?.id || '',
+      name,
+      description,
+      sku,
+      thumbnail,
+      price,
+      stock,
+      minStock,
+      isPackage,
+      piecesPerPackage,
+      realStock: isPackage ? (piecesPerPackage * stock) : stock
+    }
+    onReturnValue(newProduct)
+  }, [isPackage, onReturnValue, product?.id, thumbnail])
+
+  return (
+    <React.Fragment>
+      <Stack className={mergeStyles({ marginBottom: '1rem' })}>
+        {error !== '' && (
+          <MessageBar
+            messageBarType={MessageBarType.error}
+            onDismiss={() => setError('')}
+            dismissButtonAriaLabel="Cerrar"
+          >
+            {error}
+          </MessageBar>
+        )}
+        <Image onClick={_handlerOnChangeThumbnail} src={thumbnail || notFountImage} imageFit={ImageFit.cover} />
+        <TextField componentRef={nameRef} defaultValue={product?.name || ''} required label="Nombre" />
+        <TextField componentRef={descriptionRef} defaultValue={product?.description || ''} label="Descripción" multiline rows={3} />
+        <TextField componentRef={skuRef} defaultValue={product?.sku || ''} required label="SKU" />
+        <SpinButton componentRef={priceRef} defaultValue={product?.price.toString() || ''} incrementButtonAriaLabel="+" decrementButtonAriaLabel="-" min={0} step={0.1} label="Precio" className={mergeStyles({ marginTop: '1rem!important' })} />
+        <SpinButton componentRef={stockRef} defaultValue={product?.stock.toString() || ''} incrementButtonAriaLabel="+" decrementButtonAriaLabel="-" min={0} step={1} label="Stock" className={mergeStyles({ marginTop: '1rem!important' })} />
+        <SpinButton componentRef={minStockRef} defaultValue={product?.minStock.toString() || ''} incrementButtonAriaLabel="+" decrementButtonAriaLabel="-" min={0} step={1} label="Stock mínimo" className={mergeStyles({ marginTop: '1rem!important' })} />
+        <Toggle defaultChecked={product?.isPackage} className={mergeStyles({ marginTop: '1rem!important' })} inlineLabel onText="Es un paquete" offText="Es una unidad" onChange={(ev, checked) => setIsPackage(checked || false)} />
+        {isPackage && (
+          <SpinButton componentRef={piecesPerPackageRef} defaultValue={product?.piecesPerPackage.toString() || ''} incrementButtonAriaLabel="+" decrementButtonAriaLabel="-" min={1} step={1} label="Piezas por paquete" className={mergeStyles({ marginTop: '1rem 0!important' })} />
+        )}
+      </Stack>
+      <Stack horizontal horizontalAlign="space-around">
+        <DefaultButton
+          primary
+          text="Guardar"
+          onClick={_handlerReturnValue}
+        />
+        <DefaultButton
+          text="Cancelar"
+          onClick={onCancel}
+        />
+      </Stack>
+    </React.Fragment>
+  )
 }

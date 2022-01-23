@@ -1,11 +1,15 @@
 export type Product = {
-  id?: string
+  id: string
   name: string
   description: string
   sku: string
   thumbnail: string
   price: number
   stock: number
+  minStock: number
+  isPackage: boolean
+  piecesPerPackage: number
+  realStock: number
 }
 export type ProductsAPI = {
   create: (product: Product) => Promise<void>

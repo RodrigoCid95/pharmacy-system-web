@@ -28,7 +28,7 @@ const dataConverter: FirestoreDataConverter<DataUser> = {
 const db = getFirestore()
 const usersCollection = collection(db, 'users').withConverter(dataConverter)
 const users: UsersAPI = {
-  create: (user, password) => new Promise(async resolve => {
+  create: async (user, password) => {
     const hashPassword = Encryptor.encode(user.userName, password)
     const newUser: DataUser = {
       ...user,
@@ -36,23 +36,16 @@ const users: UsersAPI = {
     }
     delete newUser.id
     await addDoc<DataUser>(usersCollection, newUser)
-    resolve()
-  }),
-  read: () => new Promise(async resolve => {
+  },
+  read: async () => {
     const snapshots = await getDocs<DataUser>(usersCollection)
     const res = snapshots.docs.map(doc => {
       const { id, userName, name, disabled } = doc.data()
       return { id, userName, name, disabled }
     })
-    resolve(res)
-  }),
-  update: ({ id, userName, name, disabled }) => new Promise(async resolve => {
-    await updateDoc(doc(usersCollection, id), { userName, name, disabled })
-    resolve()
-  }),
-  delete: (id) => new Promise(async resolve => {
-    await deleteDoc(doc(usersCollection, id))
-    resolve()
-  })
+    return res
+  },
+  update: ({ id, userName, name, disabled }) => updateDoc(doc(usersCollection, id), { userName, name, disabled }),
+  delete: id => deleteDoc(doc(usersCollection, id))
 }
 export default users

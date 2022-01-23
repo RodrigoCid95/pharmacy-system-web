@@ -38,6 +38,7 @@ export default class ProductsPage extends React.Component<{}, ProductsPageState>
         { key: 'sku', name: 'SKU', fieldName: 'sku', minWidth: 100, maxWidth: 200, isResizable: true },
         { key: 'price', name: 'Precio', fieldName: 'price', minWidth: 100, maxWidth: 200, isResizable: true },
         { key: 'stock', name: 'Stock', fieldName: 'stock', minWidth: 100, maxWidth: 200, isResizable: true },
+        { key: 'real-stock', name: 'Stock real', fieldName: 'realStock', minWidth: 100, maxWidth: 200, isResizable: true },
       ],
       loading: '',
       currentProduct: undefined,
@@ -73,17 +74,14 @@ export default class ProductsPage extends React.Component<{}, ProductsPageState>
       if (column.isSorted) {
         isSortedDescending = !isSortedDescending
       }
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       sortedItems = _copyAndSort(sortedItems, column.fieldName!, isSortedDescending)
       this.setState({
         sortedItems: sortedItems,
         columns: columns.map(col => {
           col.isSorted = col.key === column.key;
-
           if (col.isSorted) {
             col.isSortedDescending = isSortedDescending;
           }
-
           return col;
         }),
       })
