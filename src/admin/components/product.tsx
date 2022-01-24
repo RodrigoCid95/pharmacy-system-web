@@ -10,6 +10,8 @@ import { mergeStyles } from '@fluentui/react/lib/Styling'
 import { ISpinButton, SpinButton } from '@fluentui/react/lib/SpinButton'
 import { Image, ImageFit } from '@fluentui/react/lib/Image'
 import { Toggle } from '@fluentui/react/lib/Toggle'
+import { Text } from '@fluentui/react/lib/Text'
+import AddStock from './addStock'
 
 const notFountImage = new URL('./../descarga.jpg', import.meta.url).href
 
@@ -17,7 +19,7 @@ declare const products: ProductsAPI
 
 interface ProductComponentProps {
   product?: Product
-  onDismiss: () => void
+  onDismiss: (reload: boolean) => void
 }
 interface ProductComponentState {
   loading: boolean
@@ -29,30 +31,30 @@ export class ProductComponent extends React.Component<ProductComponentProps, Pro
       loading: false
     }
   }
-    private _handlerOnSave(product: Product) {
-      if (product.id !== '') {
-        products.update(product).then(() => {
-          this.setState({ loading: false })
-          this.props.onDismiss()
-        }).catch(error => {
-          console.error(error)
-        })
-      } else {
-        products.create(product).then(() => {
-          this.setState({ loading: false })
-          this.props.onDismiss()
-        }).catch(error => {
-          console.error(error)
-        })
-      }
+  private _handlerOnSave(product: Product) {
+    if (product.id !== '') {
+      products.update(product).then(() => {
+        this.setState({ loading: false })
+        this.props.onDismiss(true)
+      }).catch(error => {
+        console.error(error)
+      })
+    } else {
+      products.create(product).then(() => {
+        this.setState({ loading: false })
+        this.props.onDismiss(true)
+      }).catch(error => {
+        console.error(error)
+      })
     }
+  }
   render() {
     const { onDismiss, product } = this.props
     const { loading } = this.state
     return (
       <Alert
         title={`${product ? 'Editar' : 'Nuevo'} producto`}
-        onDismiss={onDismiss}
+        onDismiss={() => onDismiss(false)}
       >
         {loading && (
           <Stack styles={{ root: { marginTop: '1rem' } }}>
@@ -64,7 +66,7 @@ export class ProductComponent extends React.Component<ProductComponentProps, Pro
             product={product}
             setLoading={loading => this.setState({ loading })}
             onReturnValue={this._handlerOnSave.bind(this)}
-            onCancel={onDismiss}
+            onCancel={reload => onDismiss(reload)}
           />
         )}
       </Alert>
@@ -75,7 +77,7 @@ interface FormProps {
   product?: Product
   setLoading: (loading: boolean) => void
   onReturnValue: (product: Product) => void
-  onCancel: () => void
+  onCancel: (reload: boolean) => void
 }
 const Form: React.FC<FormProps> = ({ product, setLoading, onReturnValue, onCancel }) => {
   const [error, setError] = React.useState<string>('')
@@ -122,7 +124,7 @@ const Form: React.FC<FormProps> = ({ product, setLoading, onReturnValue, onCance
       return
     }
     const piecesPerPackage = parseInt(piecesPerPackageRef.current?.value || '0')
-    if (isPackage && piecesPerPackage === 0) {
+    if (!product && isPackage && piecesPerPackage === 0) {
       setError('Falta definir cuantas piezas contiene cada paquete')
       return
     }
@@ -143,7 +145,7 @@ const Form: React.FC<FormProps> = ({ product, setLoading, onReturnValue, onCance
       realStock: isPackage ? (piecesPerPackage * stock) : stock
     }
     onReturnValue(newProduct)
-  }, [isPackage, onReturnValue, product?.id, thumbnail])
+  }, [isPackage, onReturnValue, product, thumbnail])
 
   return (
     <React.Fragment>
@@ -162,11 +164,18 @@ const Form: React.FC<FormProps> = ({ product, setLoading, onReturnValue, onCance
         <TextField componentRef={descriptionRef} defaultValue={product?.description || ''} label="Descripción" multiline rows={3} />
         <TextField componentRef={skuRef} defaultValue={product?.sku || ''} required label="SKU" />
         <SpinButton componentRef={priceRef} defaultValue={product?.price.toString() || ''} incrementButtonAriaLabel="+" decrementButtonAriaLabel="-" min={0} step={0.1} label="Precio" className={mergeStyles({ marginTop: '1rem!important' })} />
-        <SpinButton componentRef={stockRef} defaultValue={product?.stock.toString() || ''} incrementButtonAriaLabel="+" decrementButtonAriaLabel="-" min={0} step={1} label="Stock" className={mergeStyles({ marginTop: '1rem!important' })} />
+        {product ? (
+          <React.Fragment>
+            <AddStock product={product} onSave={() => onCancel(true)} />
+            {isPackage && <Text>{product.piecesPerPackage} piezas por paquete</Text>}
+          </React.Fragment>
+        ) : (
+          <SpinButton componentRef={stockRef} defaultValue="0" incrementButtonAriaLabel="+" decrementButtonAriaLabel="-" min={0} step={1} label="Stock" className={mergeStyles({ marginTop: '1rem!important' })} />
+        )}
         <SpinButton componentRef={minStockRef} defaultValue={product?.minStock.toString() || ''} incrementButtonAriaLabel="+" decrementButtonAriaLabel="-" min={0} step={1} label="Stock mínimo" className={mergeStyles({ marginTop: '1rem!important' })} />
-        <Toggle defaultChecked={product?.isPackage} className={mergeStyles({ marginTop: '1rem!important' })} inlineLabel onText="Es un paquete" offText="Es una unidad" onChange={(ev, checked) => setIsPackage(checked || false)} />
-        {isPackage && (
-          <SpinButton componentRef={piecesPerPackageRef} defaultValue={product?.piecesPerPackage.toString() || ''} incrementButtonAriaLabel="+" decrementButtonAriaLabel="-" min={1} step={1} label="Piezas por paquete" className={mergeStyles({ marginTop: '1rem 0!important' })} />
+        {!product && <Toggle className={mergeStyles({ marginTop: '1rem!important' })} inlineLabel onText="Es un paquete" offText="Es una unidad" onChange={(ev, checked) => setIsPackage(checked || false)} />}
+        {isPackage && !product && (
+          <SpinButton componentRef={piecesPerPackageRef} incrementButtonAriaLabel="+" decrementButtonAriaLabel="-" min={1} step={1} label="Piezas por paquete" className={mergeStyles({ marginTop: '1rem 0!important' })} />
         )}
       </Stack>
       <Stack horizontal horizontalAlign="space-around">
@@ -177,7 +186,7 @@ const Form: React.FC<FormProps> = ({ product, setLoading, onReturnValue, onCance
         />
         <DefaultButton
           text="Cancelar"
-          onClick={onCancel}
+          onClick={() => onCancel(false)}
         />
       </Stack>
     </React.Fragment>

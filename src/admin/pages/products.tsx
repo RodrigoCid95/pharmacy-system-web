@@ -38,7 +38,6 @@ export default class ProductsPage extends React.Component<{}, ProductsPageState>
         { key: 'sku', name: 'SKU', fieldName: 'sku', minWidth: 100, maxWidth: 200, isResizable: true },
         { key: 'price', name: 'Precio', fieldName: 'price', minWidth: 100, maxWidth: 200, isResizable: true },
         { key: 'stock', name: 'Stock', fieldName: 'stock', minWidth: 100, maxWidth: 200, isResizable: true },
-        { key: 'real-stock', name: 'Stock real', fieldName: 'realStock', minWidth: 100, maxWidth: 200, isResizable: true },
       ],
       loading: '',
       currentProduct: undefined,
@@ -105,7 +104,7 @@ export default class ProductsPage extends React.Component<{}, ProductsPageState>
             onChange={(_e, t) => this._onFilter(t || '')}
           />
           <CommandBar
-            className={mergeStyles({ minWidth: '210px' })}
+            className={mergeStyles({ minWidth: '305px' })}
             items={[
               {
                 key: 'new',
@@ -118,6 +117,12 @@ export default class ProductsPage extends React.Component<{}, ProductsPageState>
                 text: 'Eliminar',
                 iconProps: { iconName: 'Remove' },
                 onClick: () => this.setState({ openDeleteAlert: true })
+              },
+              {
+                key: 'reload',
+                text: 'Refrescar',
+                iconProps: { iconName: 'Refresh' },
+                onClick: this.loadProducts.bind(this)
               }
             ]}
           />
@@ -142,9 +147,11 @@ export default class ProductsPage extends React.Component<{}, ProductsPageState>
         </Stack>
         {openProductModal && (
           <ProductComponent
-            onDismiss={() => {
+            onDismiss={reload => {
               this.setState({ openProductModal: false, currentProduct: undefined })
-              this.loadProducts()
+              if (reload) {
+                this.loadProducts()
+              }
             }}
             product={currentProduct}
           />
@@ -170,6 +177,15 @@ function _renderItemColumn(item: Product, index?: number | undefined, column?: I
       return <Image src={fieldContent || notFountImage} width={50} height={50} imageFit={ImageFit.cover} />
     } else if (column.key === 'price') {
       return <span>${fieldContent}</span>
+    } else if (column.key === 'stock') {
+      if (item.isPackage) {
+        const results = (item.realStock / item.piecesPerPackage).toString().split('.')
+        const packages = parseInt(results[0])
+        const unitys = results[1] ? item.piecesPerPackage * (parseFloat('.' + results[1])) : 0
+        return <span>{packages} paquetes y {unitys} unidades.</span>
+      } else {
+        return <span>{fieldContent}</span>
+      }
     } else {
       return <span>{fieldContent}</span>
     }
