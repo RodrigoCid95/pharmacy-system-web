@@ -1,10 +1,10 @@
 import React from 'react'
-import { DetailsList, DetailsListLayoutMode, Selection, IColumn } from '@fluentui/react/lib/DetailsList'
+import { DetailsList, DetailsListLayoutMode, Selection, IColumn, DetailsRow, IDetailsListProps } from '@fluentui/react/lib/DetailsList'
 import { CommandBar } from '@fluentui/react/lib/CommandBar'
 import { Stack } from '@fluentui/react/lib/Stack'
 import { TextField } from '@fluentui/react/lib/TextField'
 import { MarqueeSelection } from '@fluentui/react/lib/MarqueeSelection'
-import { mergeStyles } from '@fluentui/react/lib/Styling'
+import { getTheme, mergeStyles } from '@fluentui/react/lib/Styling'
 import { Image, ImageFit } from '@fluentui/react/lib/Image'
 import { ProductsAPI, Product } from './../API/products/types'
 import Loading from './../components/loading'
@@ -13,7 +13,7 @@ import Confirm from './../components/confirm'
 
 declare const products: ProductsAPI
 const notFountImage = new URL('./../descarga.jpg', import.meta.url).href
-
+const theme = getTheme()
 interface ProductsPageState {
   sortedItems: Product[]
   columns: IColumn[]
@@ -94,6 +94,20 @@ export default class ProductsPage extends React.Component<{}, ProductsPageState>
     }
     await this.loadProducts()
   }
+  private _onRenderRow: IDetailsListProps['onRenderRow'] = props => {
+    if (props) {
+      const { stock, minStock } = (props.item as Product)
+      if (stock === 0) {
+        return <DetailsRow {...props} className={mergeStyles({ backgroundColor: theme.palette.red, color: theme.palette.white })} />
+      }
+      if (stock < minStock) {
+        return <DetailsRow {...props} className={mergeStyles({ backgroundColor: theme.palette.yellowLight })} />
+      } else {
+        return <DetailsRow {...props} />
+      }
+    }
+    return null;
+  }
   render() {
     const { columns, sortedItems, loading, currentProduct, openProductModal, openDeleteAlert } = this.state
     return (
@@ -136,6 +150,7 @@ export default class ProductsPage extends React.Component<{}, ProductsPageState>
                 columns={columns}
                 onRenderItemColumn={_renderItemColumn}
                 onColumnHeaderClick={this._onColumnClick}
+                onRenderRow={this._onRenderRow?.bind(this)}
                 setKey="set"
                 layoutMode={DetailsListLayoutMode.justified}
                 selection={this._selection}
