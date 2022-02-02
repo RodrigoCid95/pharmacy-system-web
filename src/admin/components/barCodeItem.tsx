@@ -38,7 +38,7 @@ const BarCodeItem: React.FC<BarCodeItemProps> = ({ data, onReload }) => {
     } else {
       endEdit()
     }
-  }, [endEdit, id, value])
+  }, [endEdit, id, name, value])
   return (
     <DocumentCard className={mergeStyles({ margin: '.5rem 1rem' })}>
       {spinnerLabel !== '' && (
