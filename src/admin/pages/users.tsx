@@ -1,9 +1,8 @@
-import * as React from 'react'
+import React from 'react'
 import { Stack } from '@fluentui/react/lib/Stack'
 import { CommandBar } from '@fluentui/react/lib/CommandBar'
 import { mergeStyleSets } from '@fluentui/react/lib/Styling'
 import UserComponent from '../components/user'
-// eslint-disable-next-line import/no-unresolved
 import { User, UsersAPI } from './../API/users/types'
 import { UserItemComponent, UserItem } from './../components/userItem'
 declare const users: UsersAPI
@@ -17,9 +16,7 @@ interface UsersPageState {
   isModalOpen: boolean
   items: UserItem[]
 }
-// eslint-disable-next-line @typescript-eslint/ban-types
 export default class UsersPage extends React.Component<{}, UsersPageState> {
-  // eslint-disable-next-line @typescript-eslint/ban-types
   constructor(props: {}) {
     super(props)
     this.state = {

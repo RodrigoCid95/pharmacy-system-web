@@ -26,6 +26,7 @@ mergeStyles({
 const IndexPage = React.lazy(() => import('./pages/index'))
 const UsersPage = React.lazy(() => import('./pages/users'))
 const ProductsPage = React.lazy(() => import('./pages/products'))
+const BarCodesPage = React.lazy(() => import('./pages/barCodes'))
 
 const Menu: React.FC<{ isOpen: boolean; dismissPanel: () => void; onChangeTitle: (title: string) => void; }> = ({ isOpen, dismissPanel, onChangeTitle }) => {
   const navigate = useNavigate()
@@ -71,6 +72,16 @@ const Menu: React.FC<{ isOpen: boolean; dismissPanel: () => void; onChangeTitle:
         >
           Productos
         </ActionButton>
+        <ActionButton
+          iconProps={{ iconName: 'ShowGrid' }}
+          onClick={() => {
+            navigate('/admin/bar-codes')
+            dismissPanel()
+            onChangeTitle('Códigos de barras')
+          }}
+        >
+          Códigos de barras
+        </ActionButton>
       </Stack>
     </Panel>
   )
@@ -113,6 +124,11 @@ const AdminDashboard: React.FC = () => {
           <Route path="/products" element={
             <React.Suspense fallback={<Loading />}>
               <ProductsPage />
+            </React.Suspense>
+          } />
+          <Route path="/bar-codes" element={
+            <React.Suspense fallback={<Loading />}>
+              <BarCodesPage />
             </React.Suspense>
           } />
         </Routes>

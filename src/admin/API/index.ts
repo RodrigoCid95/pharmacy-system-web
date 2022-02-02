@@ -1,6 +1,6 @@
+import barCodes from './barcodes'
 import products from './products'
 import users from './users'
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare const window: any
-window.products = products
-window.users = users
+(window as any).barCodes = barCodes;
+(window as any).products = products;
+(window as any).users = users;
