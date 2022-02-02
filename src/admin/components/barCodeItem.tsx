@@ -28,7 +28,7 @@ const BarCodeItem: React.FC<BarCodeItemProps> = ({ data, onReload }) => {
     }
   }, [value])
   const _handlerUpddate = React.useCallback((newName: string) => {
-    if (newName !== '') {
+    if (newName !== '' && name !== newName) {
       setSpinnerLabel('Cambiando nombre ...')
       barCodes.update({ id, name: newName, value }).then(() => {
         endEdit()
